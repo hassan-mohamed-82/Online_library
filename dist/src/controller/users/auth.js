@@ -78,9 +78,27 @@ const verifyEmail = async (req, res) => {
         throw new BadRequest_1.BadRequest("Invalid verification code");
     if (record.expiresAt < new Date())
         throw new BadRequest_1.BadRequest("Verification code expired");
-    await User_1.User.findByIdAndUpdate(userId, { $set: { emailVerified: true } }, { new: true });
+    // ✅ تحديث المستخدم كموثّق البريد الإلكتروني
+    const user = await User_1.User.findByIdAndUpdate(userId, { $set: { emailVerified: true } }, { new: true });
+    if (!user)
+        throw new Errors_1.NotFound("User not found");
+    // ✅ حذف سجل التحقق بعد النجاح
     await emailVerifications_1.EmailVerification.deleteOne({ _id: record._id });
-    (0, response_1.SuccessResponse)(res, { message: "Email verified successfully." }, 200);
+    // ✅ إنشاء توكن JWT
+    const token = (0, auth_1.generateToken)({
+        id: user._id.toString(),
+        name: user.name,
+        role: user.role,
+    });
+    // ✅ الرد الناجح مع البيانات
+    (0, response_1.SuccessResponse)(res, {
+        message: "Email verified successfully.",
+        token,
+        user: user.name,
+        role: user.role,
+        email: user.email,
+        _id: user._id,
+    }, 200);
 };
 exports.verifyEmail = verifyEmail;
 // ======================
@@ -104,7 +122,7 @@ const login = async (req, res) => {
         name: user.name,
         role: user.role,
     });
-    (0, response_1.SuccessResponse)(res, { message: "Login successful.", token }, 200);
+    (0, response_1.SuccessResponse)(res, { message: "Login successful.", token, user: user.name, role: user.role, email: user.email, _id: user._id }, 200);
 };
 exports.login = login;
 // ======================

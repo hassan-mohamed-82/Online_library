@@ -33,5 +33,5 @@ export const login = async (req: Request, res: Response) => {
     },
   );
 
-  SuccessResponse(res, { message: "Login successful.", token }, 200);
+  SuccessResponse(res, { message: "Login successful.", token, user: user.name, role: user.role, email: user.email ,_id: user._id }, 200);
 };

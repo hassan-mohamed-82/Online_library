@@ -28,6 +28,6 @@ const login = async (req, res) => {
         name: user.name,
         role: user.role,
     });
-    (0, response_1.SuccessResponse)(res, { message: "Login successful.", token }, 200);
+    (0, response_1.SuccessResponse)(res, { message: "Login successful.", token, user: user.name, role: user.role, email: user.email, _id: user._id }, 200);
 };
 exports.login = login;
