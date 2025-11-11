@@ -7,7 +7,7 @@ exports.verifyGoogleToken = void 0;
 const google_auth_library_1 = require("google-auth-library");
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const dotenv_1 = __importDefault(require("dotenv"));
-const User_1 = require("../models/shema/auth/User");
+const User_1 = require("../models/schema/auth/User");
 dotenv_1.default.config();
 const client = new google_auth_library_1.OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 const verifyGoogleToken = async (req, res) => {

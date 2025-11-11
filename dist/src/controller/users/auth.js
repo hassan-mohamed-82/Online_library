@@ -4,179 +4,194 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.resetPassword = exports.verifyResetCode = exports.sendResetCode = exports.getFcmToken = exports.login = exports.verifyEmail = exports.signup = void 0;
-const emailVerifications_1 = require("../../models/shema/auth/emailVerifications");
-const User_1 = require("../../models/shema/auth/User");
 const bcrypt_1 = __importDefault(require("bcrypt"));
-const response_1 = require("../../utils/response");
 const crypto_1 = require("crypto");
-const Errors_1 = require("../../Errors");
-const auth_1 = require("../../utils/auth");
-const sendEmails_1 = require("../../utils/sendEmails");
-const BadRequest_1 = require("../../Errors/BadRequest");
 const mongoose_1 = require("mongoose");
+const User_1 = require("../../models/schema/auth/User");
+const emailVerifications_1 = require("../../models/schema/auth/emailVerifications");
+const handleImages_1 = require("../../utils/handleImages");
+const sendEmails_1 = require("../../utils/sendEmails");
+const auth_1 = require("../../utils/auth");
+const response_1 = require("../../utils/response");
+const Errors_1 = require("../../Errors");
+const BadRequest_1 = require("../../Errors/BadRequest");
+// ======================
+// 1. Signup
+// ======================
 const signup = async (req, res) => {
-    const { name, email, password, BaseImage64, } = req.body;
-    // التحقق من وجود المستخدم مسبقًا
-    const existing = await User_1.UserModel.findOne({ email });
-    if (existing)
+    const { name, email, password, phone, gender, BaseImage64 } = req.body;
+    // 🔹 Check if user already exists
+    const existingUser = await User_1.User.findOne({ email });
+    if (existingUser) {
+        if (!existingUser.emailVerified) {
+            throw new BadRequest_1.BadRequest("Email already used but not verified. Please verify your email first.");
+        }
         throw new Errors_1.UniqueConstrainError("Email", "User already signed up with this email");
-    // تشفير الباسورد
+    }
+    // 🔹 Hash password
     const hashedPassword = await bcrypt_1.default.hash(password, 10);
-    // إعداد البيانات العامة للمستخدم
-    const userData = {
+    // 🔹 Handle user photo if provided
+    let photo;
+    if (BaseImage64) {
+        try {
+            photo = await (0, handleImages_1.saveBase64Image)(BaseImage64, "users", req, "uploads");
+        }
+        catch {
+            throw new BadRequest_1.BadRequest("Invalid Base64 image format");
+        }
+    }
+    // 🔹 Create user
+    const newUser = await User_1.User.create({
         name,
         email,
         password: hashedPassword,
-        BaseImage64: BaseImage64 || null,
-        isVerified: false,
-    };
-    // إنشاء الـ User أولًا
-    const newUser = new User_1.UserModel(userData);
-    await newUser.save();
-    // إنشاء كود التحقق
+        phone,
+        gender,
+        photo,
+        emailVerified: false,
+    });
+    // 🔹 Generate verification code
     const code = (0, crypto_1.randomInt)(100000, 999999).toString();
-    const expiresAt = new Date(Date.now() + 2 * 60 * 60 * 1000);
-    await new emailVerifications_1.EmailVerificationModel({
+    const expiresAt = new Date(Date.now() + 2 * 60 * 60 * 1000); // 2 hours
+    await emailVerifications_1.EmailVerification.create({
         userId: newUser._id,
-        verificationCode: code,
+        code,
+        type: "signup",
         expiresAt,
-    }).save();
-    // إرسال الإيميل بعد التأكد من حفظ كل البيانات
-    await (0, sendEmails_1.sendEmail)(email, "Verify Your Email", `Hello ${name},
-
-We received a request to verify your Smart College account.
-Your verification code is: ${code}
-(This code is valid for 2 hours only)
-
-Best regards,
-Smart College Team`);
-    (0, response_1.SuccessResponse)(res, { message: "Signup successful, check your email for code", userId: newUser._id }, 201);
+    });
+    // 🔹 Send verification email
+    await (0, sendEmails_1.sendEmail)(email, "Verify Your Email", `Hello ${name},\n\nWe received a request to verify your Smart College account.\nYour verification code is: ${code}\n(This code is valid for 2 hours only)\n\nBest regards,\nSmart College Team`);
+    (0, response_1.SuccessResponse)(res, { message: "Signup successful, check your email for the code.", userId: newUser._id }, 201);
 };
 exports.signup = signup;
+// ======================
+// 2. Verify Email
+// ======================
 const verifyEmail = async (req, res) => {
     const { userId, code } = req.body;
-    if (!userId || !code) {
-        return res.status(400).json({ success: false, error: { code: 400, message: "userId and code are required" } });
-    }
-    const record = await emailVerifications_1.EmailVerificationModel.findOne({ userId });
-    if (!record) {
-        return res.status(400).json({ success: false, error: { code: 400, message: "No verification record found" } });
-    }
-    if (record.verificationCode !== code) {
-        return res.status(400).json({ success: false, error: { code: 400, message: "Invalid verification code" } });
-    }
-    if (record.expiresAt < new Date()) {
-        return res.status(400).json({ success: false, error: { code: 400, message: "Verification code expired" } });
-    }
-    // تحديث المستخدم مباشرة بدون save()
-    const user = await User_1.UserModel.findByIdAndUpdate(userId, { isVerified: true }, { new: true } // يرجع النسخة المحدثة
-    );
-    // حذف سجل التحقق
-    await emailVerifications_1.EmailVerificationModel.deleteOne({ userId });
-    res.json({ success: true, message: "Email verified successfully" });
+    if (!userId || !code)
+        throw new BadRequest_1.BadRequest("userId and code are required");
+    const record = await emailVerifications_1.EmailVerification.findOne({ userId, type: "signup" });
+    if (!record)
+        throw new BadRequest_1.BadRequest("No verification record found");
+    if (record.code !== code)
+        throw new BadRequest_1.BadRequest("Invalid verification code");
+    if (record.expiresAt < new Date())
+        throw new BadRequest_1.BadRequest("Verification code expired");
+    await User_1.User.findByIdAndUpdate(userId, { $set: { emailVerified: true } }, { new: true });
+    await emailVerifications_1.EmailVerification.deleteOne({ _id: record._id });
+    (0, response_1.SuccessResponse)(res, { message: "Email verified successfully." }, 200);
 };
 exports.verifyEmail = verifyEmail;
+// ======================
+// 3. Login
+// ======================
 const login = async (req, res) => {
     const { email, password } = req.body;
-    if (!password) {
-        throw new Errors_1.UnauthorizedError("Password is required");
-    }
-    const user = await User_1.UserModel.findOne({ email });
-    if (!user || !user.password) {
+    if (!email || !password)
+        throw new BadRequest_1.BadRequest("Email and password are required");
+    const user = await User_1.User.findOne({ email }).select("+password");
+    if (!user || !user.password)
         throw new Errors_1.UnauthorizedError("Invalid email or password");
-    }
     const isMatch = await bcrypt_1.default.compare(password, user.password);
-    if (!isMatch) {
+    if (!isMatch)
         throw new Errors_1.UnauthorizedError("Invalid email or password");
-    }
-    if (!user.isVerified) {
-        throw new Errors_1.ForbiddenError("Verify your email first");
-    }
+    if (!user.emailVerified)
+        throw new Errors_1.ForbiddenError("Please verify your email first.");
+    // 🔹 Generate JWT (valid 7 days)
     const token = (0, auth_1.generateToken)({
         id: user._id.toString(),
         name: user.name,
+        role: user.role,
     });
-    (0, response_1.SuccessResponse)(res, { message: "Login Successful", token }, 200);
+    (0, response_1.SuccessResponse)(res, { message: "Login successful.", token }, 200);
 };
 exports.login = login;
+// ======================
+// 4. Save FCM Token
+// ======================
 const getFcmToken = async (req, res) => {
-    if (!req.user) {
-        return res.status(401).json({ message: "Unauthorized" });
-    }
+    if (!req.user)
+        throw new Errors_1.UnauthorizedError("Unauthorized");
+    if (!req.body.token)
+        throw new BadRequest_1.BadRequest("FCM token is required");
     const userId = new mongoose_1.Types.ObjectId(req.user.id);
-    const user = await User_1.UserModel.findById(userId);
+    const user = await User_1.User.findById(userId);
     if (!user)
-        return res.status(404).json({ message: "User not found" });
+        throw new Errors_1.NotFound("User not found");
     user.fcmtoken = req.body.token;
     await user.save();
-    (0, response_1.SuccessResponse)(res, { message: "FCM token updated successfully" }, 200);
+    (0, response_1.SuccessResponse)(res, { message: "FCM token updated successfully." }, 200);
 };
 exports.getFcmToken = getFcmToken;
+// ======================
+// 5. Send Reset Password Code
+// ======================
 const sendResetCode = async (req, res) => {
     const { email } = req.body;
-    const user = await User_1.UserModel.findOne({ email });
+    const user = await User_1.User.findOne({ email });
     if (!user)
         throw new Errors_1.NotFound("User not found");
-    if (!user.isVerified)
+    if (!user.emailVerified)
         throw new BadRequest_1.BadRequest("User is not verified");
+    // Remove old codes
+    await emailVerifications_1.EmailVerification.deleteMany({ userId: user._id, type: "reset_password" });
     const code = (0, crypto_1.randomInt)(100000, 999999).toString();
-    // حذف أي كود موجود مسبقًا
-    await emailVerifications_1.EmailVerificationModel.deleteMany({ userId: user._id });
-    // إنشاء كود جديد
-    const expiresAt = new Date(Date.now() + 2 * 60 * 60 * 1000); // ساعتين
-    await emailVerifications_1.EmailVerificationModel.create({
+    const expiresAt = new Date(Date.now() + 2 * 60 * 60 * 1000); // 2 hours
+    await emailVerifications_1.EmailVerification.create({
         userId: user._id,
-        verificationCode: code,
+        code,
+        type: "reset_password",
         expiresAt,
     });
-    await (0, sendEmails_1.sendEmail)(email, "Reset Password Code", `Hello ${user.name},
-
-Your password reset code is: ${code}
-(This code is valid for 2 hours)
-
-Best regards,
-Smart College Team`);
-    (0, response_1.SuccessResponse)(res, { message: "Reset code sent to your email" }, 200);
+    await (0, sendEmails_1.sendEmail)(email, "Reset Password Code", `Hello ${user.name},\n\nYour password reset code is: ${code}\n(This code is valid for 2 hours)\n\nBest regards,\nSmart College Team`);
+    (0, response_1.SuccessResponse)(res, { message: "Reset code sent to your email." }, 200);
 };
 exports.sendResetCode = sendResetCode;
-// 2️⃣ التحقق من الكود
+// ======================
+// 6. Verify Reset Code
+// ======================
 const verifyResetCode = async (req, res) => {
     const { email, code } = req.body;
-    // ✅ 1. دور على اليوزر
-    const user = await User_1.UserModel.findOne({ email });
+    const user = await User_1.User.findOne({ email });
     if (!user)
         throw new Errors_1.NotFound("User not found");
-    const userId = user._id;
-    // ✅ 2. دور على الكود باستخدام user._id
-    const record = await emailVerifications_1.EmailVerificationModel.findOne({ userId });
+    const record = await emailVerifications_1.EmailVerification.findOne({
+        userId: user._id,
+        type: "reset_password",
+    });
     if (!record)
         throw new BadRequest_1.BadRequest("No reset code found");
-    // ✅ 3. تحقق من الكود
-    if (record.verificationCode !== code)
+    if (record.code !== code)
         throw new BadRequest_1.BadRequest("Invalid code");
-    // ✅ 4. تحقق من الصلاحية
     if (record.expiresAt < new Date())
         throw new BadRequest_1.BadRequest("Code expired");
-    // ✅ 5. رجّع رد النجاح
-    (0, response_1.SuccessResponse)(res, { message: "Reset code verified successfully" }, 200);
+    (0, response_1.SuccessResponse)(res, { message: "Reset code verified successfully." }, 200);
 };
 exports.verifyResetCode = verifyResetCode;
-// 3️⃣ إعادة تعيين كلمة المرور
+// ======================
+// 7. Reset Password
+// ======================
 const resetPassword = async (req, res) => {
     const { email, code, newPassword } = req.body;
-    const user = await User_1.UserModel.findOne({ email });
+    const user = await User_1.User.findOne({ email });
     if (!user)
         throw new Errors_1.NotFound("User not found");
-    const record = await emailVerifications_1.EmailVerificationModel.findOne({ userId: user._id });
+    const record = await emailVerifications_1.EmailVerification.findOne({
+        userId: user._id,
+        type: "reset_password",
+    });
     if (!record)
         throw new BadRequest_1.BadRequest("No reset code found");
-    if (record.verificationCode !== code)
+    if (record.code !== code)
         throw new BadRequest_1.BadRequest("Invalid code");
     if (record.expiresAt < new Date())
         throw new BadRequest_1.BadRequest("Code expired");
+    // 🔹 Update password securely
     user.password = await bcrypt_1.default.hash(newPassword, 10);
     await user.save();
-    await emailVerifications_1.EmailVerificationModel.deleteOne({ userId: user._id });
-    (0, response_1.SuccessResponse)(res, { message: "Password reset successful" }, 200);
+    // 🔹 Delete old codes
+    await emailVerifications_1.EmailVerification.deleteMany({ userId: user._id, type: "reset_password" });
+    (0, response_1.SuccessResponse)(res, { message: "Password reset successful." }, 200);
 };
 exports.resetPassword = resetPassword;
