@@ -1,6 +1,10 @@
+// utils/handleImages.ts
 import path from "path";
 import fs from "fs/promises";
 import { Request } from "express";
+
+const ALLOWED_TYPES = ["png", "jpeg", "jpg", "webp", "gif"];
+const MAX_SIZE = 2 * 1024 * 1024; // 2MB
 
 export async function saveBase64Image(
   base64: string,
@@ -8,30 +12,42 @@ export async function saveBase64Image(
   req: Request,
   folder: string
 ): Promise<string> {
-  const matches = base64.match(/^data:(.+);base64,(.+)$/);
-  let ext = "png";
-  let data = base64;
-
-  if (matches && matches.length === 3) {
-    ext = matches[1].split("/")[1];
-    data = matches[2];
+  if (!base64.startsWith("data:image/")) {
+    throw new Error("Invalid Base64 format: must start with 'data:image/'");
   }
 
-  const buffer = Buffer.from(data, "base64");
-  const fileName = `${userId}.${ext}`;
+  base64 = base64.replace(/\s/g, "");
+  const [header, data] = base64.split(",");
+  if (!header || !data) throw new Error("Invalid Base64 format");
 
-  const rootDir = path.resolve(__dirname, "../../"); 
-  const uploadsDir = path.join(rootDir, "uploads", folder);
+  const typeMatch = header.match(/data:image\/([a-zA-Z0-9+]+);base64/);
+  if (!typeMatch) throw new Error("Unsupported image type");
 
+  const ext = typeMatch[1].toLowerCase();
+  if (!ALLOWED_TYPES.includes(ext)) {
+    throw new Error(`Unsupported format. Use: ${ALLOWED_TYPES.join(", ")}`);
+  }
+
+  let buffer: Buffer;
   try {
-    await fs.mkdir(uploadsDir, { recursive: true });
-    await fs.writeFile(path.join(uploadsDir, fileName), buffer);
-  } catch (err) {
-    console.error("❌ Failed to save image:", err);
-    throw err;
+    buffer = Buffer.from(data, "base64");
+  } catch {
+    throw new Error("Invalid Base64 encoding");
   }
+
+  if (buffer.length > MAX_SIZE) {
+    throw new Error("Image too large. Max 2MB");
+  }
+
+  const fileName = `${userId}-${Date.now()}-${Math.random().toString(36).substr(2, 5)}.${ext}`;
+  const rootDir = path.resolve(__dirname, "../../");
+  const uploadPath = path.join(rootDir, "uploads", folder, fileName);
+
+  await fs.mkdir(path.dirname(uploadPath), { recursive: true });
+  await fs.writeFile(uploadPath, buffer);
 
   const protocol = req.get("x-forwarded-proto") || req.protocol || "https";
+  const host = req.get("host") || "localhost:3000";
 
-  return `${protocol}://${req.get("host")}/uploads/${folder}/${fileName}`;
+  return `${protocol}://${host}/uploads/${folder}/${fileName}`;
 }

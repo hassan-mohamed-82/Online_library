@@ -5,40 +5,25 @@ import { BadRequest } from "../../Errors/BadRequest";
 import { NotFound } from "../../Errors/NotFound";
 import { saveBase64Image } from "../../utils/handleImages";
 export const createCategory = async (req: Request, res: Response) => {
-    const { name ,icon, parentId} = req.body;
-    let iconPath;
-    if (icon) {
-        try {
-            iconPath = await saveBase64Image(icon, "categories", req, "uploads");
-        } catch {
-            throw new BadRequest("Invalid Base64 image format");
-        }
-    }
-    const category = new Category({ name, icon: iconPath });
+    const { name , parentId} = req.body;  
+    const category = new Category({ name, parentId: parentId || null });
     await category.save();
-    SuccessResponse(res, { message: "Category created successfully." }, 200);
+    SuccessResponse(res, { message: "Category created successfully.", category }, 200);
 };
-
 export const getCategories = async (req: Request, res: Response) => {
-    const categories = await Category.find();
-    SuccessResponse(res, { categories }, 200);
+    const categories = await Category.find().populate('parentId', 'name');
+    SuccessResponse(res, {message:"Categories fetched successfully.", categories }, 200);
 }
 export const updateCategory = async (req: Request, res: Response) => {
     const { id } = req.params;
-    const { name, parentId , icon} = req.body;
+    const { name, parentId } = req.body;
     const category = await Category.findById(id);
     if (!category) {
         throw new NotFound("Category not found");
     }
     if (name) category.name = name;
     if (parentId) category.parentId = parentId;
-    if (icon) {
-        try {
-            category.icon = await saveBase64Image(icon, "categories", req, "uploads");
-        } catch {
-            throw new BadRequest("Invalid Base64 image format");
-        }
-    }
+   
     await category.save();
     SuccessResponse(res, { message: "Category updated successfully." }, 200);
 };
@@ -55,9 +40,9 @@ export const deleteCategory = async (req: Request, res: Response) => {
 };
 export const getCategoryById = async (req: Request, res: Response) => {
     const { id } = req.params;
-    const category = await Category.findById(id);
+    const category = await Category.findById(id).populate('parentId', 'name');
     if (!category) {
         throw new NotFound("Category not found");
     }
-    SuccessResponse(res, { category }, 200);
+    SuccessResponse(res, {message:"Category fetched successfully.", category }, 200);
 }

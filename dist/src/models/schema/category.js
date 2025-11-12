@@ -10,10 +10,6 @@ const CategorySchema = new mongoose_1.Schema({
         trim: true,
         unique: true,
     },
-    icon: {
-        type: String,
-        trim: true,
-    },
     parentId: {
         type: mongoose_1.Schema.Types.ObjectId,
         ref: "Category",
@@ -21,8 +17,6 @@ const CategorySchema = new mongoose_1.Schema({
     },
 }, {
     timestamps: true,
-    toJSON: { virtuals: true },
-    toObject: { virtuals: true },
 });
 CategorySchema.index({ parentId: 1 });
 exports.Category = (0, mongoose_1.model)("Category", CategorySchema);
