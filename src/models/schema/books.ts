@@ -16,6 +16,7 @@ export interface IBook extends Document {
   numPages?: number;
   condition?: 'new' | 'good' | 'fair' | 'poor';
   weight?: number;
+  Synopsis?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -34,6 +35,7 @@ const BookSchema = new Schema<IBook>(
     language: { type: String },
     publishYear: { type: Number },
     edition: { type: String },
+    Synopsis: { type: String },
     numPages: { type: Number, min: 1 },
     condition: { type: String, enum: ['new', 'good', 'fair', 'poor'], default: 'good' },
     weight: { type: Number }, // جرام
@@ -44,4 +46,4 @@ const BookSchema = new Schema<IBook>(
 BookSchema.index({ categoryId: 1 });
 BookSchema.index({ name: 'text' }); // للبحث
 
-export const Book = model<IBook>('Book', BookSchema);
+export const BookModel = model<IBook>('Book', BookSchema);

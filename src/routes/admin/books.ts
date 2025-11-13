@@ -1,0 +1,12 @@
+import { Router } from "express";
+import { createBook, getAllBooks, getBookById, updateBook, deleteBook } from "../../controller/admin/Book";
+import { catchAsync } from "../../utils/catchAsync";
+import { validate } from "../../middlewares/validation";
+import { createBookSchema, updateBookSchema } from "../../validation/admin/Book";
+const router = Router();
+router.post("/", validate(createBookSchema), catchAsync(createBook));
+router.get("/", catchAsync(getAllBooks));
+router.get("/:id", catchAsync(getBookById));
+router.put("/:id", validate(updateBookSchema), catchAsync(updateBook));
+router.delete("/:id", catchAsync(deleteBook));
+export default router;

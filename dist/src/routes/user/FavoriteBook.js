@@ -1,0 +1,11 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const FavoriteBook_1 = require("../../controller/users/FavoriteBook");
+const catchAsync_1 = require("../../utils/catchAsync");
+const router = (0, express_1.Router)();
+router.post("/", (0, catchAsync_1.catchAsync)(FavoriteBook_1.addToFavorites));
+router.get("/", (0, catchAsync_1.catchAsync)(FavoriteBook_1.getFavorites));
+router.delete("/:bookId", (0, catchAsync_1.catchAsync)(FavoriteBook_1.removeFromFavorites));
+router.get("/:bookId", (0, catchAsync_1.catchAsync)(FavoriteBook_1.isBookInFavorites));
+exports.default = router;

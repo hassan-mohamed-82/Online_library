@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.Book = void 0;
+exports.BookModel = void 0;
 const mongoose_1 = require("mongoose");
 const BookSchema = new mongoose_1.Schema({
     name: { type: String, required: true },
@@ -15,10 +15,11 @@ const BookSchema = new mongoose_1.Schema({
     language: { type: String },
     publishYear: { type: Number },
     edition: { type: String },
+    Synopsis: { type: String },
     numPages: { type: Number, min: 1 },
     condition: { type: String, enum: ['new', 'good', 'fair', 'poor'], default: 'good' },
     weight: { type: Number }, // جرام
 }, { timestamps: true });
 BookSchema.index({ categoryId: 1 });
 BookSchema.index({ name: 'text' }); // للبحث
-exports.Book = (0, mongoose_1.model)('Book', BookSchema);
+exports.BookModel = (0, mongoose_1.model)('Book', BookSchema);
