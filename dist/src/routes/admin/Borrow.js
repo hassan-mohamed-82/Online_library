@@ -1,0 +1,10 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const catchAsync_1 = require("../../utils/catchAsync");
+const Borrow_1 = require("../../controller/admin/Borrow");
+const router = (0, express_1.Router)();
+router.post("/scan/:borrowId", (0, catchAsync_1.catchAsync)(Borrow_1.scanBorrowQR));
+router.post("/scan/return/:borrowId", (0, catchAsync_1.catchAsync)(Borrow_1.scanReturnQR));
+router.get("/", (0, catchAsync_1.catchAsync)(Borrow_1.getAllBorrows));
+exports.default = router;

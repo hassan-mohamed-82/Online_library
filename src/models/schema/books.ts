@@ -14,6 +14,7 @@ export interface IBook extends Document {
   publishYear?: number;
   edition?: string;
   numPages?: number;
+  dayesofreturn?: number;
   condition?: 'new' | 'good' | 'fair' | 'poor';
   weight?: number;
   Synopsis?: string;
@@ -35,6 +36,7 @@ const BookSchema = new Schema<IBook>(
     language: { type: String },
     publishYear: { type: Number },
     edition: { type: String },
+    dayesofreturn: { type: Number },
     Synopsis: { type: String },
     numPages: { type: Number, min: 1 },
     condition: { type: String, enum: ['new', 'old'], default: 'new' },

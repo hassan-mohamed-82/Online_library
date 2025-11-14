@@ -15,6 +15,7 @@ export const createBook = async (req: Request, res: Response) => {
       publisher,
       writer,
       language,
+      dayesofreturn,
       publishYear,
       edition,
       numPages,
@@ -98,7 +99,9 @@ export const updateBook = async (req: Request, res: Response) => {
       weight,
       Synopsis,
       gallery,
-      mainImageBase64
+      mainImageBase64,
+      dayesofreturn
+
     } = req.body;
 
     if (name) book.name = name;
@@ -112,6 +115,7 @@ export const updateBook = async (req: Request, res: Response) => {
     if (edition) book.edition = edition;
     if (numPages) book.numPages = numPages;
     if (condition) book.condition = condition;
+    if (dayesofreturn) book.dayesofreturn = dayesofreturn;
     if (weight) book.weight = weight;
     if (Synopsis) book.Synopsis = Synopsis;
     if (mainImageBase64) book.mainImage = await saveBase64Image(mainImageBase64, req.user?.id || "unknown", req, "books");

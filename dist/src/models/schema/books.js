@@ -15,6 +15,7 @@ const BookSchema = new mongoose_1.Schema({
     language: { type: String },
     publishYear: { type: Number },
     edition: { type: String },
+    dayesofreturn: { type: Number },
     Synopsis: { type: String },
     numPages: { type: Number, min: 1 },
     condition: { type: String, enum: ['new', 'old'], default: 'new' },

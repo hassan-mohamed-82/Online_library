@@ -6,7 +6,7 @@ export interface IBorrow extends Document {
   borrowDate: Date;
   borrowTime: string; // HH:MM
   mustReturnDate: Date;
-  status: 'pending' | 'on_borrow' | 'returned' | 'expired';
+  status: 'pending' | 'on_borrow' | 'returned' ;
   qrCodeBorrow?: string;
   qrCodeReturn?: string;
   qrBorrowExpiresAt?: Date;

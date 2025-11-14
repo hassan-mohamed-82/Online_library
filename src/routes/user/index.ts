@@ -5,6 +5,8 @@ import BookRouter from "./books";
 import FavouriteBookRouter from "./FavoriteBook";
 import BookReviewRouter from "./BookReview";
 import NotificationRouter from "./notification";
+import BorrowRouter from "./Borrow";
+
 
 import { authenticated } from "../../middlewares/authenticated";
  const route = Router();
@@ -15,4 +17,5 @@ route.use("/books", BookRouter);
 route.use("/favorite-books", FavouriteBookRouter);
 route.use("/book-reviews", BookReviewRouter);
 route.use("/notification", NotificationRouter);
+route.use("/borrows", BorrowRouter);
 export default route;

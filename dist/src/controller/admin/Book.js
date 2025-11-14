@@ -8,7 +8,7 @@ const NotFound_1 = require("../../Errors/NotFound");
 const handleImages_1 = require("../../utils/handleImages");
 // إنشاء كتاب
 const createBook = async (req, res) => {
-    const { name, categoryId, numberOfCopies, numberInStock, publisher, writer, language, publishYear, edition, numPages, condition, weight, Synopsis, gallery, mainImage } = req.body;
+    const { name, categoryId, numberOfCopies, numberInStock, publisher, writer, language, dayesofreturn, publishYear, edition, numPages, condition, weight, Synopsis, gallery, mainImage } = req.body;
     if (!name || !categoryId || numberOfCopies == null || numberInStock == null) {
         throw new BadRequest_1.BadRequest("Required fields: name, categoryId, numberOfCopies, numberInStock");
     }
@@ -62,7 +62,7 @@ const updateBook = async (req, res) => {
     const book = await books_1.BookModel.findById(req.params.id);
     if (!book)
         throw new NotFound_1.NotFound("Book not found");
-    const { name, categoryId, numberOfCopies, numberInStock, publisher, writer, language, publishYear, edition, numPages, condition, weight, Synopsis, gallery, mainImageBase64 } = req.body;
+    const { name, categoryId, numberOfCopies, numberInStock, publisher, writer, language, publishYear, edition, numPages, condition, weight, Synopsis, gallery, mainImageBase64, dayesofreturn } = req.body;
     if (name)
         book.name = name;
     if (categoryId)
@@ -85,6 +85,8 @@ const updateBook = async (req, res) => {
         book.numPages = numPages;
     if (condition)
         book.condition = condition;
+    if (dayesofreturn)
+        book.dayesofreturn = dayesofreturn;
     if (weight)
         book.weight = weight;
     if (Synopsis)
