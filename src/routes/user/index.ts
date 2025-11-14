@@ -5,6 +5,7 @@ import BookRouter from "./books";
 import FavouriteBookRouter from "./FavoriteBook";
 import BookReviewRouter from "./BookReview";
 import NotificationRouter from "./notification";
+import profileRouter from "./profile";
 import BorrowRouter from "./Borrow";
 
 
@@ -18,4 +19,5 @@ route.use("/favorite-books", FavouriteBookRouter);
 route.use("/book-reviews", BookReviewRouter);
 route.use("/notification", NotificationRouter);
 route.use("/borrows", BorrowRouter);
+route.use("/profile", profileRouter);
 export default route;
