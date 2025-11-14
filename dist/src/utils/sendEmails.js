@@ -17,7 +17,7 @@ const sendEmail = async (to, subject, text) => {
     });
     try {
         const info = await transporter.sendMail({
-            from: `"Smart_collge" <${process.env.EMAIL_USER}>`,
+            from: `"Online_Library" <${process.env.EMAIL_USER}>`,
             to,
             subject,
             text,

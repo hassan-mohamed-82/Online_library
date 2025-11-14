@@ -78,7 +78,7 @@ export const signup = async (req: Request, res: Response) => {
   await sendEmail(
     email,
     "Verify Your Email",
-    `Hello ${name},\n\nWe received a request to verify your Smart College account.\nYour verification code is: ${code}\n(This code is valid for 2 hours only)\n\nBest regards,\nSmart College Team`
+    `Hello ${name},\n\nWe received a request to verify your Online library account.\nYour verification code is: ${code}\n(This code is valid for 2 hours only)\n\nBest regards,\nOnline library Team`
   );
 
   SuccessResponse(
@@ -208,7 +208,7 @@ export const sendResetCode = async (req: Request, res: Response) => {
   await sendEmail(
     email,
     "Reset Password Code",
-    `Hello ${user.name},\n\nYour password reset code is: ${code}\n(This code is valid for 2 hours)\n\nBest regards,\nSmart College Team`
+    `Hello ${user.name},\n\nYour password reset code is: ${code}\n(This code is valid for 2 hours)\n\nBest regards,\nOnline library Team`
   );
 
   SuccessResponse(res, { message: "Reset code sent to your email." }, 200);
