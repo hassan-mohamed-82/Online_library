@@ -37,7 +37,7 @@ const apiInstance = new SibApiV3Sdk.TransactionalEmailsApi();
 export const sendEmail = async (to: string, subject: string, text: string) => {
   try {
     await apiInstance.sendTransacEmail({
-      sender: { email: process.env.BREVO_SENDER_EMAIL!, name: "Smart College" },
+      sender: { email: process.env.BREVO_SENDER_EMAIL!, name: "Online_Library" },
       to: [{ email: to }],
       subject,
       textContent: text,
