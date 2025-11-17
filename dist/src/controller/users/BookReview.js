@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getBookReviews = exports.getUserReviews = exports.deleteReview = exports.updateReview = exports.addReview = void 0;
+exports.getBookReviews = exports.deleteReview = exports.updateReview = exports.addReview = void 0;
 const BookReview_1 = require("../../models/schema/BookReview");
 const books_1 = require("../../models/schema/books");
 const response_1 = require("../../utils/response");
@@ -48,16 +48,6 @@ const deleteReview = async (req, res) => {
     (0, response_1.SuccessResponse)(res, { message: "Review deleted" });
 };
 exports.deleteReview = deleteReview;
-// جلب كل تقييمات المستخدم
-const getUserReviews = async (req, res) => {
-    const userId = req.user?.id;
-    const reviews = await BookReview_1.BookReview.find({ userId: userId })
-        .populate("bookId")
-        .populate("userId", "name photo");
-    (0, response_1.SuccessResponse)(res, { message: "User reviews fetched", reviews });
-};
-exports.getUserReviews = getUserReviews;
-// جلب كل التقييمات الخاصة بكتاب معين
 const getBookReviews = async (req, res) => {
     const { bookId } = req.params;
     // التأكد من وجود الكتاب

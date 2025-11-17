@@ -1,11 +1,10 @@
 import { Router } from "express";
-import {addReview,getUserReviews,updateReview,deleteReview,getBookReviews } from "../../controller/users/BookReview";
+import {addReview,updateReview,deleteReview,getBookReviews } from "../../controller/users/BookReview";
 import { catchAsync } from "../../utils/catchAsync";
 import { validate } from "../../middlewares/validation";
 import { createReviewSchema, updateReviewSchema } from "../../validation/user/BookReview";
 const router = Router();
 router.post("/", validate(createReviewSchema), catchAsync(addReview));
-router.get("/", catchAsync(getUserReviews));
 router.get("/book/:bookId", catchAsync(getBookReviews));
 router.put("/:id", validate(updateReviewSchema), catchAsync(updateReview));
 router.delete("/:id", catchAsync(deleteReview));
