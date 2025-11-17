@@ -4,6 +4,7 @@ import { SuccessResponse } from "../../utils/response";
 import { BadRequest } from "../../Errors/BadRequest";
 import { NotFound } from "../../Errors/NotFound";
 import { saveBase64Image } from "../../utils/handleImages";
+import { deletePhotoFromServer } from "../../utils/deleteImage";
 
 // إنشاء كتاب
 export const createBook = async (req: Request, res: Response) => {
@@ -134,7 +135,15 @@ export const updateBook = async (req: Request, res: Response) => {
 export const deleteBook = async (req: Request, res: Response) => {
    const bookID = req.params.id;
     const book = await BookModel.findByIdAndDelete(bookID);
+
     if (!book) throw new NotFound("Book not found");
+
+    if (book.mainImage) deletePhotoFromServer(book.mainImage);
+    if (book.gallery && Array.isArray(book.gallery)) {
+      for (const img of book.gallery) {
+        deletePhotoFromServer(img);
+      }
+    }
 
      SuccessResponse(res, {message:"Book deleted successfully"} );
   

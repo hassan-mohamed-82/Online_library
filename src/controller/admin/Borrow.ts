@@ -5,6 +5,7 @@ import { NotFound } from "../../Errors";
 import { BadRequest } from "../../Errors/BadRequest";
 import { SuccessResponse } from "../../utils/response";
 import { Document } from "mongoose";
+import { deletePhotoFromServer } from "../../utils/deleteImage";
 
 
 // Scan borrow QR
@@ -34,6 +35,14 @@ export const scanBorrowQR = async (req: Request, res: Response) => {
   borrow.scannedByAdminAt = new Date();
   borrow.status = "on_borrow"; // تحويل الحالة بعد سكان QR
   await borrow.save();
+  // تحديث stock الكتاب
+  const bookDoc = borrow.bookId as IBook & Document;
+  if (bookDoc) {
+    bookDoc.numberInStock -= 1;
+    bookDoc.borrowedBy += 1;
+    await bookDoc.save();
+  }
+
 
   return SuccessResponse(res, { borrow });
 };
