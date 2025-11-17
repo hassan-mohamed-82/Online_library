@@ -23,10 +23,15 @@ app.use((0, cors_1.default)({ origin: "*" }));
 app.use((0, cookie_parser_1.default)());
 app.use(express_1.default.json({ limit: "20mb" }));
 app.use(express_1.default.urlencoded({ extended: true, limit: "20mb" }));
-const uploadsPath = path_1.default.join(__dirname, "../uploads");
-app.use("/uploads", express_1.default.static(uploadsPath));
+// ===============================
+// 🔥 الحل النهائي لملفات uploads
+// ===============================
+const uploadsDir = path_1.default.resolve(process.cwd(), "uploads");
+app.use("/uploads", express_1.default.static(uploadsDir));
+// ===============================
 // Routes
 app.use("/api", routes_1.default);
+// Not found handler
 app.use((req, res, next) => {
     throw new Errors_1.NotFound("Route not found");
 });
@@ -35,7 +40,7 @@ const server = http_1.default.createServer(app);
 const io = new socket_io_1.Server(server, {
     cors: { origin: "*" },
 });
-// ربط Socket.IO
+// Start server
 server.listen(3000, () => {
     console.log("Server is running on http://localhost:3000");
 });
