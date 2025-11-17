@@ -8,6 +8,7 @@ const category_1 = require("../../validation/admin/category");
 const router = (0, express_1.Router)();
 router.post("/", (0, validation_1.validate)(category_1.createCategorySchema), (0, catchAsync_1.catchAsync)(Category_1.createCategory));
 router.get("/", (0, catchAsync_1.catchAsync)(Category_1.getCategories));
+router.get("/:id/books", (0, catchAsync_1.catchAsync)(Category_1.getBooksByCategory));
 router.get("/:id", (0, catchAsync_1.catchAsync)(Category_1.getCategoryById));
 router.put("/:id", (0, validation_1.validate)(category_1.updateCategorySchema), (0, catchAsync_1.catchAsync)(Category_1.updateCategory));
 router.delete("/:id", (0, catchAsync_1.catchAsync)(Category_1.deleteCategory));
