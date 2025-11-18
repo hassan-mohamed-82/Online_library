@@ -34,9 +34,12 @@ const getCategoryById = async (req, res) => {
     if (!category) {
         throw new NotFound_1.NotFound("Category not found");
     }
+    // Get children categories
+    const children = await category_1.Category.find({ parentId: id }).select("name");
     (0, response_1.SuccessResponse)(res, {
         message: "Category fetched successfully.",
-        category
+        category,
+        children // Add children here
     }, 200);
 };
 exports.getCategoryById = getCategoryById;

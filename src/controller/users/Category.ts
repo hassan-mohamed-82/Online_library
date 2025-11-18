@@ -7,6 +7,11 @@ import { saveBase64Image } from "../../utils/handleImages";
 import { BookModel } from "../../models/schema/books";
 
 export const getCategories = async (req: Request, res: Response) => {
+
+
+
+
+    
   
     // جميع الكاتيجوريز
     const categories = await Category
@@ -32,8 +37,8 @@ export const getCategories = async (req: Request, res: Response) => {
     }, 200);
     
 }
-    export const getCategoryById = async (req: Request, res: Response) => {
-   const { id } = req.params;
+export const getCategoryById = async (req: Request, res: Response) => {
+    const { id } = req.params;
 
     const category = await Category
         .findById(id)
@@ -43,9 +48,13 @@ export const getCategories = async (req: Request, res: Response) => {
         throw new NotFound("Category not found");
     }
 
+    // Get children categories
+    const children = await Category.find({ parentId: id }).select("name");
+
     SuccessResponse(res, {
         message: "Category fetched successfully.",
-        category
+        category,
+        children // Add children here
     }, 200);
 };
 
