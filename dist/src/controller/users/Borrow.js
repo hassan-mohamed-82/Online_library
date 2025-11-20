@@ -59,7 +59,9 @@ const borrowBook = async (req, res) => {
     const borrowResponse = {
         _id: borrow._id,
         user: { _id: user._id, name: user.name },
-        book: { _id: book._id, name: book.name },
+        book: { _id: book._id, name: book.name, dayesofreturn: book.dayesofreturn, numberInStock: book.numberInStock,
+            publisher: book.publisher, writer: book.writer, edition: book.edition, numPages: book.numPages, condition: book.condition, weight: book.weight, Synopsis: book.Synopsis, gallery: book.gallery, mainImage: book.mainImage
+        },
         borrowDate: dateOnly,
         borrowTime,
         mustReturnDate: returnDateOnly,
