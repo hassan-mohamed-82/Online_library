@@ -38,9 +38,6 @@ const BorrowSchema = new Schema<IBorrow>(
   { timestamps: true }
 );
 
-// TTL للـ QR: ينتهي تلقائياً بعد 3 ساعات
-BorrowSchema.index({ qrBorrowExpiresAt: 1 }, { expireAfterSeconds: 0 });
-BorrowSchema.index({ qrReturnExpiresAt: 1 }, { expireAfterSeconds: 0 });
 
 // فهرسة للاستعلامات
 BorrowSchema.index({ userId: 1, status: 1 });

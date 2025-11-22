@@ -20,9 +20,6 @@ const BorrowSchema = new mongoose_1.Schema({
     scannedByAdminAt: { type: Date },
     returnedAt: { type: Date },
 }, { timestamps: true });
-// TTL للـ QR: ينتهي تلقائياً بعد 3 ساعات
-BorrowSchema.index({ qrBorrowExpiresAt: 1 }, { expireAfterSeconds: 0 });
-BorrowSchema.index({ qrReturnExpiresAt: 1 }, { expireAfterSeconds: 0 });
 // فهرسة للاستعلامات
 BorrowSchema.index({ userId: 1, status: 1 });
 BorrowSchema.index({ bookId: 1, status: 1 });
