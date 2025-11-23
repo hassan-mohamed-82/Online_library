@@ -9,7 +9,8 @@ exports.signupSchema = joi_1.default.object({
     name: joi_1.default.string().min(3).max(50).required(),
     email: joi_1.default.string().email().required(),
     password: joi_1.default.string().min(6).required(),
-    imageBase64: joi_1.default.string().optional(),
+    photo: joi_1.default.string().optional(),
+    BaseImage64: joi_1.default.string().optional(),
     gender: joi_1.default.string().valid("male", "female").optional(),
     phone: joi_1.default.string().min(10).max(15).required(),
 });

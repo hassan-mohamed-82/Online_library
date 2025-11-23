@@ -6,8 +6,8 @@ import { NotFound } from "../../Errors/NotFound";
 import { saveBase64Image } from "../../utils/handleImages";
 import { uploadBase64ToCloudinary } from "../../utils/cloudinary";
 
-export const getprofile = async (req: Request, res: Response) => {
 
+export const getprofile = async (req: Request, res: Response) => {
    let userId= req.user?.id;
     if (!userId) throw new BadRequest("User not authenticated");
     const user = await User.findById(userId).select("-password");

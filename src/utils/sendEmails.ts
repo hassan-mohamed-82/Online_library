@@ -24,26 +24,32 @@
 //     console.error("❌ Email error:", error);
 //   }
 // };
-
 import SibApiV3Sdk from "sib-api-v3-sdk";
+import dotenv from "dotenv";
+dotenv.config();
 
 // إعداد Brevo API
 const client = SibApiV3Sdk.ApiClient.instance;
-client.authentications["api-key"].apiKey = process.env.BREVO_API_KEY!;
+const apiKey = client.authentications["api-key"];
+apiKey.apiKey = process.env.BREVO_API_KEY!;
 
 const apiInstance = new SibApiV3Sdk.TransactionalEmailsApi();
 
-// دالة لإرسال الإيميل
 export const sendEmail = async (to: string, subject: string, text: string) => {
+  const sendSmtpEmail = new SibApiV3Sdk.SendSmtpEmail();
+  sendSmtpEmail.sender = {
+    email: process.env.BREVO_SENDER_EMAIL!,
+    name: "Online Library",
+  };
+  sendSmtpEmail.to = [{ email: to }];
+  sendSmtpEmail.subject = subject;
+  sendSmtpEmail.textContent = text;
+
   try {
-    await apiInstance.sendTransacEmail({
-      sender: { email: process.env.BREVO_SENDER_EMAIL!, name: "Online_Library" },
-      to: [{ email: to }],
-      subject,
-      textContent: text,
-    });
-    console.log("✅ Email sent via Brevo API");
-  } catch (error) {
-    console.error("❌ Email error:", error);
+    const data = await apiInstance.sendTransacEmail(sendSmtpEmail);
+    console.log("✅ Email sent via Brevo:", data.messageId);
+  } catch (error: any) {
+    console.error("❌ Email error:", error.response?.body || error.message);
+    throw new Error("Email sending failed");
   }
 };

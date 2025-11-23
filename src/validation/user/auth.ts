@@ -4,7 +4,8 @@ export const signupSchema = Joi.object({
   name: Joi.string().min(3).max(50).required(),
   email: Joi.string().email().required(),
   password: Joi.string().min(6).required(),
-  imageBase64: Joi.string().optional(),
+  photo: Joi.string().optional(),
+  BaseImage64: Joi.string().optional(),
   gender: Joi.string().valid("male", "female").optional(),
   phone: Joi.string().min(10).max(15).required(),
 });

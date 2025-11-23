@@ -9,12 +9,12 @@ const crypto_1 = require("crypto");
 const mongoose_1 = require("mongoose");
 const User_1 = require("../../models/schema/auth/User");
 const emailVerifications_1 = require("../../models/schema/auth/emailVerifications");
-const handleImages_1 = require("../../utils/handleImages");
 const sendEmails_1 = require("../../utils/sendEmails");
 const auth_1 = require("../../utils/auth");
 const response_1 = require("../../utils/response");
 const Errors_1 = require("../../Errors");
 const BadRequest_1 = require("../../Errors/BadRequest");
+const cloudinary_1 = require("../../utils/cloudinary");
 // ======================
 // 1. Signup
 // ======================
@@ -30,14 +30,15 @@ const signup = async (req, res) => {
     }
     // 🔹 Hash password
     const hashedPassword = await bcrypt_1.default.hash(password, 10);
-    // 🔹 Handle user photo if provided
-    let photo;
+    // 🔹 Upload Base64 to Cloudinary
+    let photo = null;
     if (BaseImage64) {
         try {
-            photo = await (0, handleImages_1.saveBase64Image)(BaseImage64, "users", req, "uploads");
+            photo = await (0, cloudinary_1.uploadBase64ToCloudinary)(BaseImage64, "library/users");
         }
-        catch {
-            throw new BadRequest_1.BadRequest("Invalid Base64 image format");
+        catch (error) {
+            console.log(error);
+            throw new BadRequest_1.BadRequest("Invalid Base64 image or Cloudinary upload failed");
         }
     }
     // 🔹 Create user
@@ -47,7 +48,7 @@ const signup = async (req, res) => {
         password: hashedPassword,
         phone,
         gender,
-        photo,
+        photo, // ← هنا رابط الصورة من Cloudinary
         emailVerified: false,
     });
     // 🔹 Generate verification code
@@ -61,7 +62,10 @@ const signup = async (req, res) => {
     });
     // 🔹 Send verification email
     await (0, sendEmails_1.sendEmail)(email, "Verify Your Email", `Hello ${name},\n\nWe received a request to verify your Online library account.\nYour verification code is: ${code}\n(This code is valid for 2 hours only)\n\nBest regards,\nOnline library Team`);
-    (0, response_1.SuccessResponse)(res, { message: "Signup successful, check your email for the code.", userId: newUser._id }, 201);
+    (0, response_1.SuccessResponse)(res, {
+        message: "Signup successful, check your email for the code.",
+        userId: newUser._id,
+    }, 201);
 };
 exports.signup = signup;
 // ======================

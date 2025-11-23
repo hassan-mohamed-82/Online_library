@@ -18,6 +18,7 @@ import {
   UniqueConstrainError,
 } from "../../Errors";
 import { BadRequest } from "../../Errors/BadRequest";
+import { uploadBase64ToCloudinary } from "../../utils/cloudinary";
 
 // ======================
 // 1. Signup
@@ -42,13 +43,15 @@ export const signup = async (req: Request, res: Response) => {
   // 🔹 Hash password
   const hashedPassword = await bcrypt.hash(password, 10);
 
-  // 🔹 Handle user photo if provided
-  let photo;
+  // 🔹 Upload Base64 to Cloudinary
+  let photo = null;
+
   if (BaseImage64) {
     try {
-      photo = await saveBase64Image(BaseImage64, "users", req, "uploads");
-    } catch {
-      throw new BadRequest("Invalid Base64 image format");
+      photo = await uploadBase64ToCloudinary(BaseImage64, "library/users");
+    } catch (error) {
+      console.log(error);
+      throw new BadRequest("Invalid Base64 image or Cloudinary upload failed");
     }
   }
 
@@ -59,7 +62,7 @@ export const signup = async (req: Request, res: Response) => {
     password: hashedPassword,
     phone,
     gender,
-    photo,
+    photo, // ← هنا رابط الصورة من Cloudinary
     emailVerified: false,
   });
 
@@ -83,10 +86,14 @@ export const signup = async (req: Request, res: Response) => {
 
   SuccessResponse(
     res,
-    { message: "Signup successful, check your email for the code.", userId: newUser._id },
+    {
+      message: "Signup successful, check your email for the code.",
+      userId: newUser._id,
+    },
     201
   );
 };
+
 
 // ======================
 // 2. Verify Email
