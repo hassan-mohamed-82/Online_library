@@ -46,13 +46,13 @@ const updateprofile = async (req, res) => {
 };
 exports.updateprofile = updateprofile;
 const deleteprofile = async (req, res) => {
-    let userId = req.user?.id;
+    const userId = req.user?.id;
     if (!userId)
         throw new BadRequest_1.BadRequest("User not authenticated");
     const user = await User_1.User.findById(userId).select("-password");
     if (!user)
         throw new NotFound_1.NotFound("User not found");
-    user.deleteOne();
-    (0, response_1.SuccessResponse)(res, { message: "User profile deleted", user });
+    await user.deleteOne(); // ← مهم: await
+    (0, response_1.SuccessResponse)(res, { message: "User profile deleted" });
 };
 exports.deleteprofile = deleteprofile;

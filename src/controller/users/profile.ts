@@ -46,13 +46,13 @@ export const updateprofile = async (req: Request, res: Response) => {
   SuccessResponse(res, { message: "User profile updated", user });
 };
 export const deleteprofile = async (req: Request, res: Response) => {
+  const userId = req.user?.id;
+  if (!userId) throw new BadRequest("User not authenticated");
 
-    let userId= req.user?.id;
-    if (!userId) throw new BadRequest("User not authenticated");
+  const user = await User.findById(userId).select("-password");
+  if (!user) throw new NotFound("User not found");
 
-    const user = await User.findById(userId).select("-password");
-    if (!user) throw new NotFound("User not found");
+  await user.deleteOne(); // ← مهم: await
 
-    user.deleteOne();
-    SuccessResponse(res, { message: "User profile deleted", user });
+  SuccessResponse(res, { message: "User profile deleted" });
 }
