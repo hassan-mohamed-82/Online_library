@@ -9,13 +9,22 @@ const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const dotenv_1 = __importDefault(require("dotenv"));
 const User_1 = require("../models/schema/auth/User");
 dotenv_1.default.config();
-const client = new google_auth_library_1.OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+// 1️⃣ التعديل الأول: تركنا القوسين فارغين لجعل العميل مرناً
+const client = new google_auth_library_1.OAuth2Client();
 const verifyGoogleToken = async (req, res) => {
-    const { token } = req.body;
+    let { token } = req.body;
     try {
+        // 2️⃣ التعديل الثاني: تنظيف التوكن لو وصل ومعه كلمة Bearer
+        if (token && token.startsWith("Bearer ")) {
+            token = token.slice(7, token.length).trim();
+        }
         const ticket = await client.verifyIdToken({
             idToken: token,
-            audience: process.env.GOOGLE_CLIENT_ID,
+            // 3️⃣ قبول الـ ID الموجود في البيئة والـ ID الذي ظهر في الخطأ
+            audience: [
+                process.env.GOOGLE_CLIENT_ID,
+                "813623514492-jibeig9a2l5a4gap63um33chv4navsq0.apps.googleusercontent.com"
+            ],
         });
         const payload = ticket.getPayload();
         if (!payload) {
@@ -40,7 +49,6 @@ const verifyGoogleToken = async (req, res) => {
         }
         else {
             // 👤 Login (existing user)
-            // لو المستخدم كان موجود بالإيميل بس ومفيش googleId نخزنه
             if (!user.googleId) {
                 user.googleId = googleId;
                 await user.save();
@@ -61,8 +69,13 @@ const verifyGoogleToken = async (req, res) => {
         });
     }
     catch (error) {
-        console.error("Google login error:", error);
-        res.status(401).json({ success: false, message: "Invalid token" });
+        // طباعة الخطأ كاملاً في الـ Terminal لمعرفة السبب الحقيقي
+        console.error("Google login error details:", error.message);
+        res.status(401).json({
+            success: false,
+            message: "Invalid token signature or ID mismatch",
+            error: error.message // (اختياري) إرسال سبب الخطأ للفرونت إند للتسهيل
+        });
     }
 };
 exports.verifyGoogleToken = verifyGoogleToken;

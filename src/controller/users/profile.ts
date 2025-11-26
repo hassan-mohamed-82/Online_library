@@ -52,7 +52,7 @@ export const deleteprofile = async (req: Request, res: Response) => {
   const user = await User.findById(userId).select("-password");
   if (!user) throw new NotFound("User not found");
 
-  await user.deleteOne(); // ← مهم: await
+  await user.deleteOne(); 
 
   SuccessResponse(res, { message: "User profile deleted" });
 }
