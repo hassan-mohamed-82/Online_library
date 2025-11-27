@@ -4,8 +4,8 @@ import { Schema, model, Document } from 'mongoose';
 export interface IUser extends Document {
   name: string;
   email: string;
-  password: string;
-  phone: string;
+  password?: string; // ✅ علامة الاستفهام مهمة في الـ Interface
+  phone?: string;    // ✅ علامة الاستفهام مهمة
   role: 'admin' | 'user';
   photo?: string;
   gender?: 'male' | 'female' | 'other';
@@ -20,13 +20,18 @@ const UserSchema = new Schema<IUser>(
   {
     name: { type: String, required: true, trim: true },
     email: { type: String, required: true, unique: true, lowercase: true, trim: true },
-    password: { type: String, required: true, minlength: 6, select: false }, // لا يُرجع في find()
-    phone: { type: String, required: true, trim: true },
+    
+    // ✅ ممتاز: false عشان جوجل ملوش باسوورد
+    password: { type: String, required: false, minlength: 6, select: false }, 
+    
+    // ✅ ممتاز: false عشان جوجل مش بيبعت رقم تليفون
+    phone: { type: String, required: false, trim: true }, 
+
     role: { type: String, enum: ['admin', 'user'], default: 'user' },
-    photo: { type: String }, // رابط الصورة
+    photo: { type: String }, 
     gender: { type: String, enum: ['male', 'female', 'other'] },
-    fcmtoken: { type: String }, // للإشعارات
-    googleId: { type: String, unique: true, sparse: true }, // لتسجيل الدخول بجوجل
+    fcmtoken: { type: String }, 
+    googleId: { type: String, unique: true, sparse: true }, 
     emailVerified: { type: Boolean, default: false },
   },
   { 
@@ -36,8 +41,7 @@ const UserSchema = new Schema<IUser>(
   }
 );
 
-// === Indexes مهمة ===
-UserSchema.index({ fcmtoken: 1 });        // لإرسال FCM
-UserSchema.index({ role: 1 });            // للـ admin panel
+UserSchema.index({ fcmtoken: 1 });
+UserSchema.index({ role: 1 });
 
 export const User = model<IUser>('User', UserSchema);
