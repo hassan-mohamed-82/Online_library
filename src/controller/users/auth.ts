@@ -26,24 +26,73 @@ import { uploadBase64ToCloudinary } from "../../utils/cloudinary";
 export const signup = async (req: Request, res: Response) => {
   const { name, email, password, phone, gender, BaseImage64 } = req.body;
 
-  // 🔹 Check if user already exists
+  // ===========================
+  // 1) Check if user already exists
+  // ===========================
   const existingUser = await User.findOne({ email });
-  if (existingUser) {
-    if (!existingUser.emailVerified) {
-      throw new BadRequest(
-        "Email already used but not verified. Please verify your email first."
-      );
-    }
+
+  // ----------------------------
+  // CASE A) User exists but NOT verified → resend code
+  // ----------------------------
+  if (existingUser && !existingUser.emailVerified) {
+    // 🔹 Delete old verification codes
+    await EmailVerification.deleteMany({
+      userId: existingUser._id,
+      type: "signup",
+    });
+
+    // 🔹 Generate new verification code
+    const code = randomInt(100000, 999999).toString();
+    const expiresAt = new Date(Date.now() + 2 * 60 * 60 * 1000); // 2 hours
+
+    await EmailVerification.create({
+      userId: existingUser._id,
+      code,
+      type: "signup",
+      expiresAt,
+    });
+
+    // 🔹 Re-send verification email
+    await sendEmail(
+      email,
+      "Verify Your Email",
+      `Hello ${existingUser.name},
+
+We received a request to verify your Online Library account.
+Your new verification code is: ${code}
+(This code is valid for 2 hours)
+
+Best regards,
+Online Library Team`
+    );
+
+    return SuccessResponse(
+      res,
+      {
+        message:
+          "This email is already registered but not verified. A new verification code has been sent.",
+        userId: existingUser._id,
+      },
+      200
+    );
+  }
+
+  // ----------------------------
+  // CASE B) User exists and verified
+  // ----------------------------
+  if (existingUser && existingUser.emailVerified) {
     throw new UniqueConstrainError(
       "Email",
       "User already signed up with this email"
     );
   }
 
-  // 🔹 Hash password
+  // ===========================
+  // 2) Create new user (first time signup)
+  // ===========================
   const hashedPassword = await bcrypt.hash(password, 10);
 
-  // 🔹 Upload Base64 to Cloudinary
+  // Upload photo to Cloudinary if provided
   let photo = null;
 
   if (BaseImage64) {
@@ -55,20 +104,21 @@ export const signup = async (req: Request, res: Response) => {
     }
   }
 
-  // 🔹 Create user
   const newUser = await User.create({
     name,
     email,
     password: hashedPassword,
     phone,
     gender,
-    photo, // ← هنا رابط الصورة من Cloudinary
+    photo,
     emailVerified: false,
   });
 
-  // 🔹 Generate verification code
+  // ===========================
+  // 3) Generate verification code
+  // ===========================
   const code = randomInt(100000, 999999).toString();
-  const expiresAt = new Date(Date.now() + 2 * 60 * 60 * 1000); // 2 hours
+  const expiresAt = new Date(Date.now() + 2 * 60 * 60 * 1000);
 
   await EmailVerification.create({
     userId: newUser._id,
@@ -77,17 +127,29 @@ export const signup = async (req: Request, res: Response) => {
     expiresAt,
   });
 
-  // 🔹 Send verification email
+  // ===========================
+  // 4) Send verification email
+  // ===========================
   await sendEmail(
     email,
     "Verify Your Email",
-    `Hello ${name},\n\nWe received a request to verify your Online library account.\nYour verification code is: ${code}\n(This code is valid for 2 hours only)\n\nBest regards,\nOnline library Team`
+    `Hello ${name},
+
+Welcome to Online Library!
+Your verification code is: ${code}
+(This code is valid for 2 hours)
+
+Best regards,
+Online Library Team`
   );
 
+  // ===========================
+  // 5) Success Response
+  // ===========================
   SuccessResponse(
     res,
     {
-      message: "Signup successful, check your email for the code.",
+      message: "Signup successful. A verification code has been sent to your email.",
       userId: newUser._id,
     },
     201
