@@ -17,25 +17,28 @@ export const scanBorrowQR = async (req: Request, res: Response) => {
 
   if (!borrow) throw new NotFound("Borrow not found");
 
-  // تأكد إن QR ما اتحمسش قبل كده
   if (borrow.scannedByAdminAt) {
     throw new BadRequest("Borrow QR has already been scanned");
   }
 
-  // تحقق من صلاحية QR
   if (borrow.qrBorrowExpiresAt && borrow.qrBorrowExpiresAt < new Date()) {
     throw new BadRequest("Borrow QR expired");
   }
 
-  // وضع الحالة الأولية على pending قبل السكان
   if (borrow.status !== "pending") {
     throw new BadRequest("Borrow status must be pending to scan QR");
   }
 
+  // تسجيل السكان
   borrow.scannedByAdminAt = new Date();
-  borrow.status = "on_borrow"; // تحويل الحالة بعد سكان QR
+  borrow.status = "on_borrow";
+
+  // إزالة QR بعد استخدامه
+  borrow.qrCodeBorrow = undefined;
+  borrow.qrBorrowExpiresAt = undefined;
+
   await borrow.save();
-  // تحديث stock الكتاب
+
   const bookDoc = borrow.bookId as IBook & Document;
   if (bookDoc) {
     bookDoc.numberInStock -= 1;
@@ -43,9 +46,9 @@ export const scanBorrowQR = async (req: Request, res: Response) => {
     await bookDoc.save();
   }
 
-
   return SuccessResponse(res, { borrow });
 };
+
 
 // Scan return QR
 export const scanReturnQR = async (req: Request, res: Response) => {
@@ -56,9 +59,9 @@ export const scanReturnQR = async (req: Request, res: Response) => {
 
   if (!borrow) throw new NotFound("Borrow not found");
 
-  // تحقق إن QR ما تم سكانه قبل كده
+  // لازم يكون الكتاب في حالة on_borrow
   if (borrow.status !== "on_borrow") {
-    throw new BadRequest("Borrow QR has already been scanned");
+    throw new BadRequest("This borrow is not currently active");
   }
 
   // تحقق من صلاحية QR
@@ -68,13 +71,21 @@ export const scanReturnQR = async (req: Request, res: Response) => {
 
   borrow.status = "returned";
   borrow.returnedAt = new Date();
+
+  // إزالة QR بعد الاستخدام
+  borrow.qrCodeReturn = undefined;
+  borrow.qrReturnExpiresAt = undefined;
+
   await borrow.save();
 
-  // تحديث stock الكتاب
+  // تحديث مخزون الكتاب
   const bookDoc = borrow.bookId as IBook & Document;
   if (bookDoc) {
     bookDoc.numberInStock += 1;
     bookDoc.borrowedBy -= 1;
+
+    if (bookDoc.borrowedBy < 0) bookDoc.borrowedBy = 0;
+
     await bookDoc.save();
   }
 

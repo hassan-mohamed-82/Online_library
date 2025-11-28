@@ -12,22 +12,22 @@ const scanBorrowQR = async (req, res) => {
         .populate("bookId");
     if (!borrow)
         throw new Errors_1.NotFound("Borrow not found");
-    // تأكد إن QR ما اتحمسش قبل كده
     if (borrow.scannedByAdminAt) {
         throw new BadRequest_1.BadRequest("Borrow QR has already been scanned");
     }
-    // تحقق من صلاحية QR
     if (borrow.qrBorrowExpiresAt && borrow.qrBorrowExpiresAt < new Date()) {
         throw new BadRequest_1.BadRequest("Borrow QR expired");
     }
-    // وضع الحالة الأولية على pending قبل السكان
     if (borrow.status !== "pending") {
         throw new BadRequest_1.BadRequest("Borrow status must be pending to scan QR");
     }
+    // تسجيل السكان
     borrow.scannedByAdminAt = new Date();
-    borrow.status = "on_borrow"; // تحويل الحالة بعد سكان QR
+    borrow.status = "on_borrow";
+    // إزالة QR بعد استخدامه
+    borrow.qrCodeBorrow = undefined;
+    borrow.qrBorrowExpiresAt = undefined;
     await borrow.save();
-    // تحديث stock الكتاب
     const bookDoc = borrow.bookId;
     if (bookDoc) {
         bookDoc.numberInStock -= 1;
@@ -44,9 +44,9 @@ const scanReturnQR = async (req, res) => {
         .populate("bookId");
     if (!borrow)
         throw new Errors_1.NotFound("Borrow not found");
-    // تحقق إن QR ما تم سكانه قبل كده
+    // لازم يكون الكتاب في حالة on_borrow
     if (borrow.status !== "on_borrow") {
-        throw new BadRequest_1.BadRequest("Borrow QR has already been scanned");
+        throw new BadRequest_1.BadRequest("This borrow is not currently active");
     }
     // تحقق من صلاحية QR
     if (borrow.qrReturnExpiresAt && borrow.qrReturnExpiresAt < new Date()) {
@@ -54,12 +54,17 @@ const scanReturnQR = async (req, res) => {
     }
     borrow.status = "returned";
     borrow.returnedAt = new Date();
+    // إزالة QR بعد الاستخدام
+    borrow.qrCodeReturn = undefined;
+    borrow.qrReturnExpiresAt = undefined;
     await borrow.save();
-    // تحديث stock الكتاب
+    // تحديث مخزون الكتاب
     const bookDoc = borrow.bookId;
     if (bookDoc) {
         bookDoc.numberInStock += 1;
         bookDoc.borrowedBy -= 1;
+        if (bookDoc.borrowedBy < 0)
+            bookDoc.borrowedBy = 0;
         await bookDoc.save();
     }
     return (0, response_1.SuccessResponse)(res, { borrow });
