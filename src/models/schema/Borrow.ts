@@ -23,11 +23,12 @@ const BorrowSchema = new Schema<IBorrow>(
     borrowDate: { type: Date, required: true, default: Date.now },
     borrowTime: { type: String, required: true }, // "14:30"
     mustReturnDate: { type: Date, required: true }, // +7 أيام مثلاً
-    status: {
-      type: String,
-      enum: ['pending', 'on_borrow', 'returned', 'expired'],
-      default: 'pending',
-    },
+   status: {
+  type: String,
+  enum: ['pending', 'on_borrow', 'returned'],
+  default: 'pending',
+},
+
     qrCodeBorrow: { type: String },
     qrCodeReturn: { type: String },
     qrBorrowExpiresAt: { type: Date }, // +3 ساعات

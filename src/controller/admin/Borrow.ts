@@ -21,19 +21,16 @@ export const scanBorrowQR = async (req: Request, res: Response) => {
     throw new BadRequest("Borrow QR has already been scanned");
   }
 
-  if (borrow.qrBorrowExpiresAt && borrow.qrBorrowExpiresAt < new Date()) {
-    throw new BadRequest("Borrow QR expired");
-  }
+  // ❌ شيلنا صلاحية QR
+  // if (borrow.qrBorrowExpiresAt && borrow.qrBorrowExpiresAt < new Date()) {}
 
   if (borrow.status !== "pending") {
     throw new BadRequest("Borrow status must be pending to scan QR");
   }
 
-  // تسجيل السكان
   borrow.scannedByAdminAt = new Date();
   borrow.status = "on_borrow";
 
-  // إزالة QR بعد استخدامه
   borrow.qrCodeBorrow = undefined;
   borrow.qrBorrowExpiresAt = undefined;
 

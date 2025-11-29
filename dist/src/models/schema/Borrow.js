@@ -10,7 +10,7 @@ const BorrowSchema = new mongoose_1.Schema({
     mustReturnDate: { type: Date, required: true }, // +7 أيام مثلاً
     status: {
         type: String,
-        enum: ['pending', 'on_borrow', 'returned', 'expired'],
+        enum: ['pending', 'on_borrow', 'returned'],
         default: 'pending',
     },
     qrCodeBorrow: { type: String },
