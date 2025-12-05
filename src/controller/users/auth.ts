@@ -19,6 +19,7 @@ import {
 } from "../../Errors";
 import { BadRequest } from "../../Errors/BadRequest";
 import { uploadBase64ToCloudinary } from "../../utils/cloudinary";
+import { passwordResetTemplate, resendVerificationTemplate, verificationEmailTemplate } from "../../utils/amailTemplet";
 
 // ======================
 // 1. Signup
@@ -26,24 +27,17 @@ import { uploadBase64ToCloudinary } from "../../utils/cloudinary";
 export const signup = async (req: Request, res: Response) => {
   const { name, email, password, phone, gender, BaseImage64 } = req.body;
 
-  // ===========================
-  // 1) Check if user already exists
-  // ===========================
   const existingUser = await User.findOne({ email });
 
-  // ----------------------------
   // CASE A) User exists but NOT verified → resend code
-  // ----------------------------
   if (existingUser && !existingUser.emailVerified) {
-    // 🔹 Delete old verification codes
     await EmailVerification.deleteMany({
       userId: existingUser._id,
       type: "signup",
     });
 
-    // 🔹 Generate new verification code
     const code = randomInt(100000, 999999).toString();
-    const expiresAt = new Date(Date.now() + 2 * 60 * 60 * 1000); // 2 hours
+    const expiresAt = new Date(Date.now() + 2 * 60 * 60 * 1000);
 
     await EmailVerification.create({
       userId: existingUser._id,
@@ -52,18 +46,12 @@ export const signup = async (req: Request, res: Response) => {
       expiresAt,
     });
 
-    // 🔹 Re-send verification email
+    // ✨ إرسال إيميل بتصميم جميل
     await sendEmail(
       email,
-      "Verify Your Email",
-      `Hello ${existingUser.name},
-
-We received a request to verify your Online Library account.
-Your new verification code is: ${code}
-(This code is valid for 2 hours)
-
-Best regards,
-Online Library Team`
+      "🔄 New Verification Code - Online Library",
+      `Your verification code is: ${code}. Valid for 2 hours.`,
+      resendVerificationTemplate(existingUser.name, code)
     );
 
     return SuccessResponse(
@@ -77,9 +65,7 @@ Online Library Team`
     );
   }
 
-  // ----------------------------
   // CASE B) User exists and verified
-  // ----------------------------
   if (existingUser && existingUser.emailVerified) {
     throw new UniqueConstrainError(
       "Email",
@@ -87,14 +73,10 @@ Online Library Team`
     );
   }
 
-  // ===========================
-  // 2) Create new user (first time signup)
-  // ===========================
+  // Create new user
   const hashedPassword = await bcrypt.hash(password, 10);
 
-  // Upload photo to Cloudinary if provided
   let photo = null;
-
   if (BaseImage64) {
     try {
       photo = await uploadBase64ToCloudinary(BaseImage64, "library/users");
@@ -114,9 +96,6 @@ Online Library Team`
     emailVerified: false,
   });
 
-  // ===========================
-  // 3) Generate verification code
-  // ===========================
   const code = randomInt(100000, 999999).toString();
   const expiresAt = new Date(Date.now() + 2 * 60 * 60 * 1000);
 
@@ -127,34 +106,25 @@ Online Library Team`
     expiresAt,
   });
 
-  // ===========================
-  // 4) Send verification email
-  // ===========================
+  // ✨ إرسال إيميل ترحيبي بتصميم جميل
   await sendEmail(
     email,
-    "Verify Your Email",
-    `Hello ${name},
-
-Welcome to Online Library!
-Your verification code is: ${code}
-(This code is valid for 2 hours)
-
-Best regards,
-Online Library Team`
+    "✉️ Verify Your Email - Online Library",
+    `Welcome ${name}! Your verification code is: ${code}. Valid for 2 hours.`,
+    verificationEmailTemplate(name, code)
   );
 
-  // ===========================
-  // 5) Success Response
-  // ===========================
   SuccessResponse(
     res,
     {
-      message: "Signup successful. A verification code has been sent to your email.",
+      message:
+        "Signup successful. A verification code has been sent to your email.",
       userId: newUser._id,
     },
     201
   );
 };
+
 
 
 // ======================
@@ -262,10 +232,13 @@ export const sendResetCode = async (req: Request, res: Response) => {
   if (!user.emailVerified) throw new BadRequest("User is not verified");
 
   // Remove old codes
-  await EmailVerification.deleteMany({ userId: user._id, type: "reset_password" });
+  await EmailVerification.deleteMany({
+    userId: user._id,
+    type: "reset_password",
+  });
 
   const code = randomInt(100000, 999999).toString();
-  const expiresAt = new Date(Date.now() + 2 * 60 * 60 * 1000); // 2 hours
+  const expiresAt = new Date(Date.now() + 2 * 60 * 60 * 1000);
 
   await EmailVerification.create({
     userId: user._id,
@@ -274,15 +247,16 @@ export const sendResetCode = async (req: Request, res: Response) => {
     expiresAt,
   });
 
+  // ✨ إرسال إيميل بتصميم جميل
   await sendEmail(
     email,
-    "Reset Password Code",
-    `Hello ${user.name},\n\nYour password reset code is: ${code}\n(This code is valid for 2 hours)\n\nBest regards,\nOnline library Team`
+    "🔐 Password Reset Code - Online Library",
+    `Your password reset code is: ${code}. Valid for 2 hours.`,
+    passwordResetTemplate(user.name, code)
   );
 
   SuccessResponse(res, { message: "Reset code sent to your email." }, 200);
 };
-
 // ======================
 // 6. Verify Reset Code
 // ======================

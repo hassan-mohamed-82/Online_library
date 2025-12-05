@@ -30,6 +30,8 @@ const updateprofile = async (req, res) => {
         user.email = req.body.email;
     if (req.body.phone)
         user.phone = req.body.phone;
+    if (req.body.gender)
+        user.gender = req.body.gender;
     if (req.body.image) {
         const { image } = req.body;
         try {
