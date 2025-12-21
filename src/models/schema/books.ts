@@ -1,4 +1,4 @@
-import { model, Schema } from "mongoose";
+import { model, Schema, Document } from "mongoose";
 
 export interface IBook extends Document {
   name: string;
@@ -15,7 +15,7 @@ export interface IBook extends Document {
   edition?: string;
   numPages?: number;
   dayesofreturn?: number;
-  condition?: 'new' | 'old' ;
+  condition?: string; // ✅ غيرناها من 'new' | 'old' لـ string
   weight?: number;
   Synopsis?: string;
   createdAt: Date;
@@ -25,7 +25,7 @@ export interface IBook extends Document {
 const BookSchema = new Schema<IBook>(
   {
     name: { type: String, required: true, unique: true },
-    categoryId: { type: Schema.Types.ObjectId, ref: 'Category', required: true },
+    categoryId: { type: Schema.Types.ObjectId, ref: "Category", required: true },
     mainImage: { type: String },
     gallery: [{ type: String }],
     numberOfCopies: { type: Number, required: true, min: 0 },
@@ -33,19 +33,19 @@ const BookSchema = new Schema<IBook>(
     borrowedBy: { type: Number, default: 0 },
     publisher: { type: String },
     writer: { type: String },
-    language: { type: String },
+    language: { type: String }, // ✅ يقبل أي لغة
     publishYear: { type: Number },
     edition: { type: String },
     dayesofreturn: { type: Number },
     Synopsis: { type: String },
     numPages: { type: Number, min: 1 },
-    condition: { type: String, enum: ['new', 'old'], default: 'new' },
-    weight: { type: Number }, 
+    condition: { type: String }, // ✅ شيلنا الـ enum - يقبل أي قيمة
+    weight: { type: Number },
   },
   { timestamps: true }
 );
 
 BookSchema.index({ categoryId: 1 });
-BookSchema.index({ name: 'text' }); // للبحث
+BookSchema.index({ name: "text" });
 
-export const BookModel = model<IBook>('Book', BookSchema);
+export const BookModel = model<IBook>("Book", BookSchema);
