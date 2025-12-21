@@ -1,22 +1,33 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getAllBorrows = exports.scanReturnQR = exports.scanBorrowQR = void 0;
 const Borrow_1 = require("../../models/schema/Borrow");
 const Errors_1 = require("../../Errors");
 const BadRequest_1 = require("../../Errors/BadRequest");
 const response_1 = require("../../utils/response");
+const mongoose_1 = __importDefault(require("mongoose"));
 // Scan borrow QR
 const scanBorrowQR = async (req, res) => {
     const { borrowId } = req.params;
-    const borrow = await Borrow_1.Borrow.findById(borrowId)
-        .populate("bookId");
+    let borrow;
+    // تحقق إذا كان ObjectId صالح
+    if (mongoose_1.default.Types.ObjectId.isValid(borrowId)) {
+        borrow = await Borrow_1.Borrow.findById(borrowId)
+            .populate("bookId");
+    }
+    else {
+        // إذا كان الـ QR يحتوي على قيمة مختلفة، ابحث بـ qrCodeBorrow
+        borrow = await Borrow_1.Borrow.findOne({ qrCodeBorrow: borrowId })
+            .populate("bookId");
+    }
     if (!borrow)
         throw new Errors_1.NotFound("Borrow not found");
     if (borrow.scannedByAdminAt) {
         throw new BadRequest_1.BadRequest("Borrow QR has already been scanned");
     }
-    // ❌ شيلنا صلاحية QR
-    // if (borrow.qrBorrowExpiresAt && borrow.qrBorrowExpiresAt < new Date()) {}
     if (borrow.status !== "pending") {
         throw new BadRequest_1.BadRequest("Borrow status must be pending to scan QR");
     }
@@ -37,8 +48,17 @@ exports.scanBorrowQR = scanBorrowQR;
 // Scan return QR
 const scanReturnQR = async (req, res) => {
     const { borrowId } = req.params;
-    const borrow = await Borrow_1.Borrow.findById(borrowId)
-        .populate("bookId");
+    let borrow;
+    // تحقق إذا كان ObjectId صالح
+    if (mongoose_1.default.Types.ObjectId.isValid(borrowId)) {
+        borrow = await Borrow_1.Borrow.findById(borrowId)
+            .populate("bookId");
+    }
+    else {
+        // إذا كان الـ QR يحتوي على قيمة مختلفة، ابحث بـ qrCodeReturn
+        borrow = await Borrow_1.Borrow.findOne({ qrCodeReturn: borrowId })
+            .populate("bookId");
+    }
     if (!borrow)
         throw new Errors_1.NotFound("Borrow not found");
     // لازم يكون الكتاب في حالة on_borrow

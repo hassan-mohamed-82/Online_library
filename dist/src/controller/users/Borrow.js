@@ -42,10 +42,7 @@ const borrowBook = async (req, res) => {
     const mustReturnDate = new Date();
     mustReturnDate.setDate(borrowDate.getDate() + (book.dayesofreturn || 7));
     const returnDateOnly = mustReturnDate.toISOString().split("T")[0];
-    // توليد QR Base64
-    const qrText = `Book: ${book.name}\nUser: ${user.name}\nBorrow Date: ${dateOnly}\nBorrow Time: ${borrowTime}\nReturn By: ${returnDateOnly}`;
-    const qrCodeBase64 = await qrcode_1.default.toDataURL(qrText);
-    const qrCodeUrl = await (0, cloudinary_1.uploadBase64ToCloudinary)(qrCodeBase64, "qrcodes");
+    // ✅ أنشئ الـ Borrow أولاً للحصول على الـ _id
     const borrow = await Borrow_1.Borrow.create({
         userId,
         bookId,
@@ -53,14 +50,39 @@ const borrowBook = async (req, res) => {
         borrowTime,
         mustReturnDate,
         status: "pending",
-        qrCodeBorrow: qrCodeUrl,
-        qrBorrowExpiresAt: new Date(now.getTime() + 3 * 60 * 60 * 1000), // صلاحية 3 ساعات
+        qrBorrowExpiresAt: new Date(now.getTime() + 3 * 60 * 60 * 1000),
     });
+    // ✅ الآن أنشئ الـ QR بالـ borrowId
+    const qrData = JSON.stringify({
+        type: "borrow",
+        borrowId: borrow._id.toString(),
+        bookName: book.name,
+        userName: user.name,
+        borrowDate: dateOnly,
+        returnBy: returnDateOnly,
+    });
+    const qrCodeBase64 = await qrcode_1.default.toDataURL(qrData);
+    const qrCodeUrl = await (0, cloudinary_1.uploadBase64ToCloudinary)(qrCodeBase64, "qrcodes");
+    // ✅ حدّث الـ Borrow بالـ QR URL
+    borrow.qrCodeBorrow = qrCodeUrl;
+    await borrow.save();
     const borrowResponse = {
         _id: borrow._id,
         user: { _id: user._id, name: user.name },
-        book: { _id: book._id, name: book.name, dayesofreturn: book.dayesofreturn, numberInStock: book.numberInStock,
-            publisher: book.publisher, writer: book.writer, edition: book.edition, numPages: book.numPages, condition: book.condition, weight: book.weight, Synopsis: book.Synopsis, gallery: book.gallery, mainImage: book.mainImage
+        book: {
+            _id: book._id,
+            name: book.name,
+            dayesofreturn: book.dayesofreturn,
+            numberInStock: book.numberInStock,
+            publisher: book.publisher,
+            writer: book.writer,
+            edition: book.edition,
+            numPages: book.numPages,
+            condition: book.condition,
+            weight: book.weight,
+            Synopsis: book.Synopsis,
+            gallery: book.gallery,
+            mainImage: book.mainImage,
         },
         borrowDate: dateOnly,
         borrowTime,
@@ -91,8 +113,15 @@ const returnBook = async (req, res) => {
         throw new BadRequest_1.BadRequest("Book is not currently borrowed");
     const now = new Date();
     const returnDateOnly = now.toISOString().split("T")[0];
-    const qrText = `Book: ${bookDoc.name}\nUser: ${userDoc.name}\nReturn Date: ${returnDateOnly}`;
-    const qrCodeBase64 = await qrcode_1.default.toDataURL(qrText);
+    // ✅ QR يحتوي على borrowId
+    const qrData = JSON.stringify({
+        type: "return",
+        borrowId: borrow._id.toString(),
+        bookName: bookDoc.name,
+        userName: userDoc.name,
+        returnDate: returnDateOnly,
+    });
+    const qrCodeBase64 = await qrcode_1.default.toDataURL(qrData);
     const qrCodeUrl = await (0, cloudinary_1.uploadBase64ToCloudinary)(qrCodeBase64, "qrcodes");
     borrow.qrCodeReturn = qrCodeUrl;
     borrow.qrReturnExpiresAt = new Date(now.getTime() + 3 * 60 * 60 * 1000);
