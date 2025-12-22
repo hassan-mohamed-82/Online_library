@@ -4,9 +4,9 @@ export interface IBorrow extends Document {
   userId: Schema.Types.ObjectId;
   bookId: Schema.Types.ObjectId;
   borrowDate: Date;
-  borrowTime: string; // HH:MM
+  borrowTime: string;
   mustReturnDate: Date;
-  status: 'pending' | 'on_borrow' | 'returned' ;
+  status: 'pending' | 'on_borrow' | 'returned' | 'late'; // ✅ أضفنا late
   qrCodeBorrow?: string;
   qrCodeReturn?: string;
   qrBorrowExpiresAt?: Date;
@@ -21,17 +21,16 @@ const BorrowSchema = new Schema<IBorrow>(
     userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     bookId: { type: Schema.Types.ObjectId, ref: 'Book', required: true },
     borrowDate: { type: Date, required: true, default: Date.now },
-    borrowTime: { type: String, required: true }, // "14:30"
-    mustReturnDate: { type: Date, required: true }, // +7 أيام مثلاً
-   status: {
-  type: String,
-  enum: ['pending', 'on_borrow', 'returned'],
-  default: 'pending',
-},
-
+    borrowTime: { type: String, required: true },
+    mustReturnDate: { type: Date, required: true },
+    status: {
+      type: String,
+      enum: ['pending', 'on_borrow', 'returned', 'late'], // ✅ صححنا الـ syntax
+      default: 'pending',
+    },
     qrCodeBorrow: { type: String },
     qrCodeReturn: { type: String },
-    qrBorrowExpiresAt: { type: Date }, // +3 ساعات
+    qrBorrowExpiresAt: { type: Date },
     qrReturnExpiresAt: { type: Date },
     scannedByAdminAt: { type: Date },
     returnedAt: { type: Date },
@@ -39,8 +38,6 @@ const BorrowSchema = new Schema<IBorrow>(
   { timestamps: true }
 );
 
-
-// فهرسة للاستعلامات
 BorrowSchema.index({ userId: 1, status: 1 });
 BorrowSchema.index({ bookId: 1, status: 1 });
 

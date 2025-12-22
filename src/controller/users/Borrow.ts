@@ -71,7 +71,8 @@ export const borrowBook = async (req: Request, res: Response) => {
 
   const borrowResponse = {
     _id: borrow._id,
-    user: { _id: user._id, name: user.name },
+    user: { _id: user._id, name: user.name,phone: user.phone, // ✅ إضافة رقم التليفون
+    },
     book: {
       _id: book._id,
       name: book.name,
@@ -115,9 +116,8 @@ export const returnBook = async (req: Request, res: Response) => {
   if (!userDoc._id || (userDoc._id as any).toString() !== userId)
     throw new BadRequest("Unauthorized");
 
-  if (borrow.status !== "on_borrow")
+  if (borrow.status !== "on_borrow" && borrow.status !== "late")
     throw new BadRequest("Book is not currently borrowed");
-
   const now = new Date();
   const returnDateOnly = now.toISOString().split("T")[0];
 
@@ -139,7 +139,7 @@ export const returnBook = async (req: Request, res: Response) => {
 
   const borrowResponse = {
     _id: borrow._id,
-    user: { _id: userDoc._id, name: userDoc.name },
+    user: { _id: userDoc._id, name: userDoc.name,phone: userDoc.phone},
     book: { _id: bookDoc._id, name: bookDoc.name },
     borrowDate: borrow.borrowDate.toISOString().split("T")[0],
     borrowTime: borrow.borrowTime,
@@ -159,27 +159,40 @@ export const getUserBorrows = async (req: Request, res: Response) => {
   const borrows = await Borrow.find({ userId }).populate("bookId").sort({ createdAt: -1 });
 
   const now = new Date();
+  const pending: any[] = [];
   const borrowed: any[] = [];
+  const late: any[] = [];
   const returned: any[] = [];
 
   for (const b of borrows) {
+    // تحديث حالة الكتب المتأخرة
+    if (b.status === "on_borrow" && b.mustReturnDate < now) {
+      b.status = "late";
+      await b.save();
+    }
+
     // امسح أي QR منتهية
     if (b.qrBorrowExpiresAt && b.qrBorrowExpiresAt < now && b.qrCodeBorrow) {
-      await deletePhotoFromServer(b.qrCodeBorrow.replace(`${req.protocol}://${req.get("host")}/`, ""));
       b.qrCodeBorrow = undefined;
       b.qrBorrowExpiresAt = undefined;
       await b.save();
     }
     if (b.qrReturnExpiresAt && b.qrReturnExpiresAt < now && b.qrCodeReturn) {
-      await deletePhotoFromServer(b.qrCodeReturn.replace(`${req.protocol}://${req.get("host")}/`, ""));
       b.qrCodeReturn = undefined;
       b.qrReturnExpiresAt = undefined;
       await b.save();
     }
 
+    if (b.status === "pending") pending.push(b);
     if (b.status === "on_borrow") borrowed.push(b);
+    if (b.status === "late") {
+      late.push({
+        ...b.toObject(),
+        daysLate: Math.floor((now.getTime() - b.mustReturnDate.getTime()) / (1000 * 60 * 60 * 24)),
+      });
+    }
     if (b.status === "returned") returned.push(b);
   }
 
-  return SuccessResponse(res, { borrowed, returned });
+  return SuccessResponse(res, { pending, borrowed, late, returned });
 };

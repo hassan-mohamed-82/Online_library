@@ -9,7 +9,6 @@ const Borrow_1 = require("../../models/schema/Borrow");
 const User_1 = require("../../models/schema/auth/User");
 const books_1 = require("../../models/schema/books");
 const qrcode_1 = __importDefault(require("qrcode"));
-const deleteImage_1 = require("../../utils/deleteImage");
 const Errors_1 = require("../../Errors");
 const BadRequest_1 = require("../../Errors/BadRequest");
 const response_1 = require("../../utils/response");
@@ -68,7 +67,8 @@ const borrowBook = async (req, res) => {
     await borrow.save();
     const borrowResponse = {
         _id: borrow._id,
-        user: { _id: user._id, name: user.name },
+        user: { _id: user._id, name: user.name, phone: user.phone, // ✅ إضافة رقم التليفون
+        },
         book: {
             _id: book._id,
             name: book.name,
@@ -109,7 +109,7 @@ const returnBook = async (req, res) => {
     const userDoc = borrow.userId;
     if (!userDoc._id || userDoc._id.toString() !== userId)
         throw new BadRequest_1.BadRequest("Unauthorized");
-    if (borrow.status !== "on_borrow")
+    if (borrow.status !== "on_borrow" && borrow.status !== "late")
         throw new BadRequest_1.BadRequest("Book is not currently borrowed");
     const now = new Date();
     const returnDateOnly = now.toISOString().split("T")[0];
@@ -128,7 +128,7 @@ const returnBook = async (req, res) => {
     await borrow.save();
     const borrowResponse = {
         _id: borrow._id,
-        user: { _id: userDoc._id, name: userDoc.name },
+        user: { _id: userDoc._id, name: userDoc.name, phone: userDoc.phone },
         book: { _id: bookDoc._id, name: bookDoc.name },
         borrowDate: borrow.borrowDate.toISOString().split("T")[0],
         borrowTime: borrow.borrowTime,
@@ -146,27 +146,40 @@ const getUserBorrows = async (req, res) => {
         throw new BadRequest_1.BadRequest("User not found");
     const borrows = await Borrow_1.Borrow.find({ userId }).populate("bookId").sort({ createdAt: -1 });
     const now = new Date();
+    const pending = [];
     const borrowed = [];
+    const late = [];
     const returned = [];
     for (const b of borrows) {
+        // تحديث حالة الكتب المتأخرة
+        if (b.status === "on_borrow" && b.mustReturnDate < now) {
+            b.status = "late";
+            await b.save();
+        }
         // امسح أي QR منتهية
         if (b.qrBorrowExpiresAt && b.qrBorrowExpiresAt < now && b.qrCodeBorrow) {
-            await (0, deleteImage_1.deletePhotoFromServer)(b.qrCodeBorrow.replace(`${req.protocol}://${req.get("host")}/`, ""));
             b.qrCodeBorrow = undefined;
             b.qrBorrowExpiresAt = undefined;
             await b.save();
         }
         if (b.qrReturnExpiresAt && b.qrReturnExpiresAt < now && b.qrCodeReturn) {
-            await (0, deleteImage_1.deletePhotoFromServer)(b.qrCodeReturn.replace(`${req.protocol}://${req.get("host")}/`, ""));
             b.qrCodeReturn = undefined;
             b.qrReturnExpiresAt = undefined;
             await b.save();
         }
+        if (b.status === "pending")
+            pending.push(b);
         if (b.status === "on_borrow")
             borrowed.push(b);
+        if (b.status === "late") {
+            late.push({
+                ...b.toObject(),
+                daysLate: Math.floor((now.getTime() - b.mustReturnDate.getTime()) / (1000 * 60 * 60 * 24)),
+            });
+        }
         if (b.status === "returned")
             returned.push(b);
     }
-    return (0, response_1.SuccessResponse)(res, { borrowed, returned });
+    return (0, response_1.SuccessResponse)(res, { pending, borrowed, late, returned });
 };
 exports.getUserBorrows = getUserBorrows;
