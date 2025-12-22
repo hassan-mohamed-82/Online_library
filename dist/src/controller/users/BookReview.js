@@ -41,8 +41,7 @@ exports.updateReview = updateReview;
 // حذف تقييم المستخدم
 const deleteReview = async (req, res) => {
     const { id } = req.params;
-    const userId = req.user?.id;
-    const review = await BookReview_1.BookReview.findOneAndDelete({ _id: id, userId });
+    const review = await BookReview_1.BookReview.findOneAndDelete({ _id: id });
     if (!review)
         throw new NotFound_1.NotFound("Review not found");
     (0, response_1.SuccessResponse)(res, { message: "Review deleted" });
