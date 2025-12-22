@@ -44,7 +44,7 @@ export const updateReview = async (req: Request, res: Response) => {
 export const deleteReview = async (req: Request, res: Response) => {
   const { id } = req.params;
 
-  const review = await BookReview.findOneAndDelete({ _id: id });
+  const review = await BookReview.findByIdAndDelete(id);
   if (!review) throw new NotFound("Review not found");
 
   SuccessResponse(res, { message: "Review deleted" });
