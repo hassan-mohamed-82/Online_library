@@ -4,5 +4,5 @@ import { catchAsync } from "../../utils/catchAsync";
 
 const router = Router();
 router.get("/:bookId", catchAsync(getBookReviews));
-router.delete("/:id", catchAsync(deleteReviewByAdmin));
+router.delete("/:reviewId", catchAsync(deleteReviewByAdmin));
 export default router;
