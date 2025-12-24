@@ -24,7 +24,7 @@ export interface IBook extends Document {
 
 const BookSchema = new Schema<IBook>(
   {
-    name: { type: String, required: true, unique: true },
+    name: { type: String, required: true },
     categoryId: { type: Schema.Types.ObjectId, ref: "Category", required: true },
     mainImage: { type: String },
     gallery: [{ type: String }],

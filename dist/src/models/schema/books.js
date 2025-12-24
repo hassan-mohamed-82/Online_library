@@ -3,7 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.BookModel = void 0;
 const mongoose_1 = require("mongoose");
 const BookSchema = new mongoose_1.Schema({
-    name: { type: String, required: true, unique: true },
+    name: { type: String, required: true },
     categoryId: { type: mongoose_1.Schema.Types.ObjectId, ref: "Category", required: true },
     mainImage: { type: String },
     gallery: [{ type: String }],
